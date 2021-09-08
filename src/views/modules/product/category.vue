@@ -9,6 +9,7 @@
       :default-expanded-keys="expandedKey"
       draggable
       :allow-drop="allowDrop"
+      @node-drop="handleDrop"
     >
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -66,6 +67,7 @@ export default {
   props: {},
   data() {
     return {
+      updateNodes: [],
       maxLevel: 0,
       title: "",
       dialogType: "",//edit,add
@@ -241,6 +243,47 @@ export default {
         }
       }
     },
+    handleDrop(draggingNode, dropNode, dropType, ev) {
+      console.log('tree drop: ', dropNode.label, dropType);
+      // 当前节点最新的父节点ID
+      let pCid = 0;
+      let siblings = null;
+      if(dropType == "before"||dropType=="after"){
+        pCid = dropNode.parent.data.catId==undefined?0:dropNode.parent.data.catId;
+        siblings = dropNode.parent.childNodes;
+      }else{
+        pCid = dropNode.data.catId;
+        siblings = dropNode.childNodes;
+      }
+      //当前拖拽节点最新的顺序
+      for(let i=0;i<siblings.length;i++){
+        if(siblings[i].data.catId == draggingNode.data.catId){
+          //如果遍历的是当前正在拖拽的节点
+          let catLevel = draggingNode.level;
+          if(siblings[i].level != draggingNode.level){
+            //当前节点的层级发生变化
+            catLevel = siblings[i].level;
+            //修改他子节点的层级
+            this.updateChildNodeLevel(siblings[i]);
+          }
+          this.updateNodes.push({catId:siblings[i].data.catId,sort:i,parentCid:pCid,catLevel:catLevel});
+        }else{
+          this.updateNodes.push({catId:siblings[i].data.catId,sort:i});
+        }
+      }
+      //当前拖拽节点的最新层级
+      console.log("updateNodes:",this.updateNodes)
+    },
+    updateChildNodeLevel(node){
+      if(node.childNodes.length>0){
+        for(let i=0;i<node.childNodes.length;i++){
+          var cNode = node.childNodes[i].data;
+          this.updateNodes.push({catId:cNode.catId,catLevel:node.childNodes[i].level});
+          this.updateChildNodeLevel(node.childNodes[i]);
+        }
+      }
+    },
+
   },
   created() {
     this.getMenus();
