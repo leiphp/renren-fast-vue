@@ -7,6 +7,8 @@
       show-checkbox
       node-key="catId"
       :default-expanded-keys="expandedKey"
+      draggable
+      :allow-drop="allowDrop"
     >
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -64,6 +66,7 @@ export default {
   props: {},
   data() {
     return {
+      maxLevel: 0,
       title: "",
       dialogType: "",//edit,add
       category: {
@@ -211,6 +214,32 @@ export default {
         })
         .catch(() => {});
       console.log("remove", node, data);
+    },
+    allowDrop(draggingNode, dropNode, type) {
+      //1.被拖到的当前节点以及所在的父节点总层数不能大于3
+      // 被拖动的当前节点总层数
+      console.log("allowOrop:",draggingNode, dropNode, type);
+      this.countNodeLevel(draggingNode.data);
+      // 当前正在拖动的节点+父节点所在深度不大于3即可
+      let deep = this.maxLevel - draggingNode.data.catLevel + 1;
+      console.log("深度：",deep)
+      //this.maxLevel
+      if(type == "inner"){
+        return (deep + dropNode.level) <=3;
+      }else{
+        return (deep + dropNode.parent.level) <=3;
+      }
+    },
+    countNodeLevel(node){
+      //找到所有子节点，求出最大深度
+      if(node.children != null && node.children.length > 0){
+        for(let i=0;i<node.children.length;i++){
+          if(node.children[i].catLevel > this.maxLevel){
+            this.maxLevel = node.children[i].catLevel;
+          }
+          this.countNodeLevel(node.children[i]);
+        }
+      }
     },
   },
   created() {
